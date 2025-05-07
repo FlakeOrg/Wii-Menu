@@ -1,7 +1,4 @@
 # Welcome
 This repository is to try and remake the original Wii menu but in a web browser! 
-This project will include:
-Customization
-The original cursor
-Ability to add websites
-...and more!
+<br>
+This project just started, so don't expect much right now. Follow if you want to be notified of anything!
