@@ -1,3 +1,9 @@
 body {
-  cursor: url('https://github.com/FlakeOrg/Wii-Menu/raw/main/ahhh_its_a_cursor-removebg-preview.png'), auto;
+  cursor: url('ahhh_its_a_cursor-removebg-preview.png'), auto;
+
+}
+
+html, body {
+  height: 100%;
+  cursor: url('ahhh_its_a_cursor-removebg-preview.png'), auto;
 }
