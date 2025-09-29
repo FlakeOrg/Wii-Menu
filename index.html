@@ -1,43 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Wii Menu Clock</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <style>
-    #clock {
-      position: fixed;
-      bottom: 10px;
-      width: 100%;
-      text-align: center;
-      font-size: 1.5em;
-      color: #fff;
-      background: rgba(0,0,0,0.5);
-      padding: 10px 0;
-      left: 0;
-    }
-    body {
-      margin: 0;
-      background: #222;
-      min-height: 100vh;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wii Menu</title>
+    <!-- Link to CSS file -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>wii menu test so hard ahhh</h1>
-  <button id="testButton">test</button>
-  <div id="clock"></div>
-  <script>
-    function updateClock() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-  </script>
+    <button class="wii-button">Start</button>
 </body>
-</html>.
+</html>
