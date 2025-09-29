@@ -1,9 +1,9 @@
 .wii-button {
   display: inline-block;
-  padding: 20px 66px;
+  padding: 24px 66px;
   font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 1.2rem;
-  color: #2e5fa6;
+  color: #00000;
   background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
   border: 2px solid #b3d3f7;
   border-radius: 22px;
@@ -21,29 +21,6 @@
   box-shadow:
     0 4px 16px rgba(120, 170, 220, 0.28),
     0 1px 2px rgba(255,255,255,0.30) inset;
-  color: #1b3977;
+  color: #181d29;
 }
 
-/* Add this to your style.css file */
-
-/* Base Wii Channel Button */
-.wii-channel-button {
-  width: 120px;
-  height: 120px;
-  border-radius: 28px;
-  background: linear-gradient(180deg, #f5faff 0%, #dbeafd 100%);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1.5px 0 #b0c7d5 inset;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 14px;
-  border: 3px solid #b0c7d5;
-  position: relative;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-}
-
-.wii-channel-button:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 0 #b0c7d5 inset;
-}
