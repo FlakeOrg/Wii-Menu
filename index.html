@@ -35,8 +35,11 @@
       border-radius: 22px;
       box-shadow: 0 2px 8px rgba(120, 170, 220, 0.18),
                   0 0.5px 1px rgba(255,255,255,0.25) inset;
+  height: 120px;   /* match grid row height */
+  width: 100%;     /* let the grid cell define the width */
+  box-sizing: border-box;
       text-shadow: 0 1px 0 #ffffff;
-      transition: background 0.2s, box-shadow 0.2s;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.18s;
       cursor: pointer;
       outline: none;
       position: relative;
@@ -48,6 +51,20 @@
       box-shadow: 0 4px 16px rgba(120, 170, 220, 0.28),
                   0 1px 2px rgba(255,255,255,0.30) inset;
       color: #181d29;
+    }
+
+    .channel.selected {
+      z-index: 2;
+      transform: scale(1.14);
+      box-shadow: 0 8px 32px rgba(60,120,220,0.28), 0 2px 8px #b3d3f7, 0 0.5px 1px rgba(255,255,255,0.35) inset;
+      border-color: #3399ff;
+      background: linear-gradient(180deg, #e2effc 0%, #cbe7ff 100%);
+      color: #004080;
+    }
+
+    .channel:not(.selected) {
+      opacity: 0.64;
+      transition: opacity 0.18s, transform 0.2s;
     }
 
     .remove-btn {
@@ -101,7 +118,7 @@
       width: 40px;
       height: 40px;
       border-radius: 100%;
-      background: #ddd;
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -114,7 +131,6 @@
       color: black;
       padding: 10px 15px;
       border-radius: 8px;
-      border: 2px solid #b3d3f7;
       cursor: pointer;
       font-size: 16px;
       transition: background 0.2s;
@@ -123,13 +139,71 @@
     }
 
     .add-channel-btn:hover, .toggle-edit-btn:hover {
-      background: #45a049;
       background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
-
     }
 
     .toggle-edit-btn.active {
       background: #e67e22;
+    }
+
+    /* --- Zoom / fade effect --- */
+    .channel.opening {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 80vw;
+      height: 80vh;
+      transform: translate(-50%, -50%) scale(1);
+      z-index: 999;
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+      border-radius: 22px;
+      transition: all 0.6s ease;
+    }
+
+    .channel.fade-out {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    /* --- Overlay (Wii Menu / Start) --- */
+    .channel-overlay {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(to top, #e5e5e5, #dcdcdc);
+      border-top: 2px solid #aaa;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 20px 0;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(100%);
+      transition: all 0.5s ease;
+    }
+
+    .channel-overlay.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .channel-overlay button {
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+      border: 2px solid #b3d3f7;
+      border-radius: 12px;
+      font-size: 18px;
+      padding: 12px 30px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15),
+                  0 0.5px 1px rgba(255,255,255,0.25) inset;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .channel-overlay button:hover {
+      background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -145,7 +219,7 @@
     <div class="channel">Mii Parade <button class="remove-btn">✖</button></div>
     <div class="channel">Wii Settings <button class="remove-btn">✖</button></div>
     <div class="channel">Internet <button class="remove-btn">✖</button></div>
-    <div class="channel">Empty <button class="remove-btn">✖</button></div>
+    <div class="channel">Music Channel <button class="remove-btn">✖</button></div>
     <div class="channel">Wii Speak <button class="remove-btn">✖</button></div>
     <div class="channel">Transfer Tool <button class="remove-btn">✖</button></div>
   </div>
@@ -163,97 +237,201 @@
     </div>
   </div>
 
-  <script>
-    let editMode = false;
-    let dragged = null;
+<script>
+  let editMode = false;
+  let dragged = null;
 
-    // Date/time
-    function updateDateTime() {
-      const now = new Date();
-      const time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      const date = now.toLocaleDateString([], {weekday: 'short', month: 'numeric', day: 'numeric'});
-      document.getElementById('datetime').textContent = `${time} | ${date}`;
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
+  // --- Date/time ---
+  function updateDateTime() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const date = now.toLocaleDateString([], {weekday: 'short', month: 'numeric', day: 'numeric'});
+    document.getElementById('datetime').textContent = `${time} | ${date}`;
+  }
+  setInterval(updateDateTime, 1000);
+  updateDateTime();
 
-    // Add channel
-    function addChannel() {
-      const name = prompt("Enter a name for your new channel:");
-      if (name && name.trim() !== "") {
-        const menu = document.getElementById("menu");
-        const newChannel = document.createElement("div");
-        newChannel.className = "channel";
-        newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
-        setupChannel(newChannel);
-        menu.appendChild(newChannel);
+  // --- Save & Load channels from localStorage ---
+  function saveChannels() {
+    const menu = document.getElementById("menu");
+    const data = Array.from(menu.children).map(ch => ({
+      name: ch.childNodes[0].textContent.trim(), // channel name
+      link: ch.getAttribute("data-link") || ""
+    }));
+    localStorage.setItem("channels", JSON.stringify(data));
+  }
+
+  function loadChannels() {
+    const saved = localStorage.getItem("channels");
+    if (!saved) return;
+    const channels = JSON.parse(saved);
+    const menu = document.getElementById("menu");
+    menu.innerHTML = ""; // clear default channels
+
+    channels.forEach(ch => {
+      const newChannel = document.createElement("div");
+      newChannel.className = "channel";
+      newChannel.setAttribute("data-link", ch.link);
+      newChannel.innerHTML = `${ch.name} <button class="remove-btn">✖</button>`;
+      setupChannel(newChannel);
+      menu.appendChild(newChannel);
+    });
+  }
+
+  // --- Add channel ---
+  function addChannel() {
+    const name = prompt("Enter a name for your new channel:");
+    if (!name || name.trim() === "") return;
+
+    const link = prompt("Enter a link (URL) for this channel:");
+    if (!link || link.trim() === "") return;
+
+    const menu = document.getElementById("menu");
+    const newChannel = document.createElement("div");
+    newChannel.className = "channel";
+    newChannel.setAttribute("data-link", link);
+    newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
+    setupChannel(newChannel);
+    menu.appendChild(newChannel);
+
+    saveChannels();
+  }
+
+  // --- Setup channel interactions ---
+  function setupChannel(channel) {
+    const removeBtn = channel.querySelector(".remove-btn");
+
+    // Remove channel
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (editMode) {
+        channel.remove();
+        saveChannels();
       }
-    }
+    });
 
-    // Setup channel interactions
-    function setupChannel(channel) {
-      const removeBtn = channel.querySelector(".remove-btn");
+    // Dragging
+    channel.addEventListener("dragstart", (e) => {
+      if (!editMode) return e.preventDefault();
+      dragged = channel;
+      setTimeout(() => channel.style.display = "none", 0);
+    });
 
+    channel.addEventListener("dragend", () => {
+      if (dragged) {
+        dragged.style.display = "flex";
+        dragged = null;
+        saveChannels();
+      }
+    });
 
-      // Remove channel (edit mode)
-      removeBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (editMode) channel.remove();
-      });
+    channel.addEventListener("dragover", (e) => {
+      if (editMode) e.preventDefault();
+    });
 
-      // Dragging
-      channel.addEventListener("dragstart", (e) => {
-        if (!editMode) return e.preventDefault();
-        dragged = channel;
-        setTimeout(() => channel.style.display = "none", 0);
-      });
+    channel.addEventListener("drop", (e) => {
+      if (editMode && dragged && dragged !== channel) {
+        e.preventDefault();
+        const menu = document.getElementById("menu");
+        const children = Array.from(menu.children);
+        const draggedIndex = children.indexOf(dragged);
+        const targetIndex = children.indexOf(channel);
 
-      channel.addEventListener("dragend", () => {
-        if (dragged) {
-          dragged.style.display = "flex";
-          dragged = null;
-        }
-      });
-
-      channel.addEventListener("dragover", (e) => {
-        if (editMode) e.preventDefault();
-      });
-
-      channel.addEventListener("drop", (e) => {
-        if (editMode && dragged && dragged !== channel) {
-          e.preventDefault();
-          const menu = document.getElementById("menu");
-          const children = Array.from(menu.children);
-          const draggedIndex = children.indexOf(dragged);
-          const targetIndex = children.indexOf(channel);
-
-          if (draggedIndex < targetIndex) {
-            menu.insertBefore(dragged, channel.nextSibling);
-          } else {
-            menu.insertBefore(dragged, channel);
-          }
-        }
-      });
-    }
-
-    // Toggle edit mode
-    function toggleEditMode() {
-      editMode = !editMode;
-      document.getElementById("editToggle").classList.toggle("active", editMode);
-
-      document.querySelectorAll(".channel").forEach(channel => {
-        if (editMode) {
-          channel.classList.add("edit-mode");
-          channel.setAttribute("draggable", true);
+        if (draggedIndex < targetIndex) {
+          menu.insertBefore(dragged, channel.nextSibling);
         } else {
-          channel.classList.remove("edit-mode");
-          channel.removeAttribute("draggable");
+          menu.insertBefore(dragged, channel);
         }
-      });
-    }
+        saveChannels();
+      }
+    });
 
-    // Initialize existing channels
+    // Single click selects
+    channel.addEventListener("click", function() {
+      if (editMode) return;
+      document.querySelectorAll(".channel").forEach(ch => ch.classList.remove("selected"));
+      channel.classList.add("selected");
+    });
+
+    // Double-click opens overlay
+    channel.addEventListener("dblclick", function () {
+      if (editMode) return;
+
+      document.querySelectorAll(".channel").forEach(ch => ch.classList.remove("selected"));
+      channel.classList.add("opening");
+
+      let overlay = document.querySelector(".channel-overlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.className = "channel-overlay";
+        overlay.innerHTML = `
+          <button id="menuBtn">Wii Menu</button>
+          <button id="startBtn">Start</button>
+        `;
+        document.body.appendChild(overlay);
+
+        // Wii Menu button
+        document.getElementById("menuBtn").addEventListener("click", () => {
+          overlay.classList.remove("show");
+          channel.classList.remove("opening", "fade-out");
+          setTimeout(() => overlay.remove(), 500);
+        });
+
+        // Start button
+        document.getElementById("startBtn").addEventListener("click", () => {
+          const link = channel.getAttribute("data-link");
+          if (link) {
+            window.open(link, "_blank");
+          } else {
+            alert("No link set for this channel.");
+          }
+          overlay.classList.remove("show");
+          channel.classList.remove("opening", "fade-out");
+          setTimeout(() => overlay.remove(), 500);
+        });
+      }
+
+      setTimeout(() => {
+        channel.classList.add("fade-out");
+        overlay.classList.add("show");
+      }, 600);
+    });
+
+    // --- Right-click to edit link in edit mode ---
+    channel.addEventListener("contextmenu", (e) => {
+      if (!editMode) return; // only works in edit mode
+      e.preventDefault();
+      const newLink = prompt("Enter a new link (URL) for this channel:", channel.getAttribute("data-link") || "");
+      if (newLink && newLink.trim() !== "") {
+        channel.setAttribute("data-link", newLink);
+        saveChannels();
+      }
+    });
+  }
+
+  // --- Toggle edit mode ---
+  function toggleEditMode() {
+    editMode = !editMode;
+    document.getElementById("editToggle").classList.toggle("active", editMode);
+
+    document.querySelectorAll(".channel").forEach(channel => {
+      if (editMode) {
+        channel.classList.remove("selected");
+        channel.classList.add("edit-mode");
+        channel.setAttribute("draggable", true);
+      } else {
+        channel.classList.remove("edit-mode");
+        channel.removeAttribute("draggable");
+      }
+    });
+  }
+
+  // --- Initialize ---
+  loadChannels(); // load from localStorage
+  if (document.querySelectorAll(".channel").length > 0) {
     document.querySelectorAll(".channel").forEach(setupChannel);
-  </script>
+  }
+</script>
+
 </body>
 </html>
