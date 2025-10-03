@@ -14,7 +14,6 @@
       height: 100vh;
     }
 
-    /* Grid container */
     .menu {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -24,33 +23,60 @@
       flex: 1;
     }
 
-	.channel {
-  display: inline-block;
-  padding: 24px 66px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  font-size: 1.2rem;
-  color: #00000;
-  background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
-  border: 2px solid #b3d3f7;
-  border-radius: 22px;
-  box-shadow:
-    0 2px 8px rgba(120, 170, 220, 0.18),
-    0 0.5px 1px rgba(255,255,255,0.25) inset;
-  text-shadow: 0 1px 0 #ffffff;
-  transition: background 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  outline: none;
-}
+    .channel {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 1.2rem;
+      color: #000;
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+      border: 2px solid #b3d3f7;
+      border-radius: 22px;
+      box-shadow: 0 2px 8px rgba(120, 170, 220, 0.18),
+                  0 0.5px 1px rgba(255,255,255,0.25) inset;
+      text-shadow: 0 1px 0 #ffffff;
+      transition: background 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      outline: none;
+      position: relative;
+      user-select: none;
+    }
 
-	.channel:hover, .channel:focus {
-  background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
-  box-shadow:
-    0 4px 16px rgba(120, 170, 220, 0.28),
-    0 1px 2px rgba(255,255,255,0.30) inset;
-  color: #181d29;
-}
+    .channel:hover {
+      background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
+      box-shadow: 0 4px 16px rgba(120, 170, 220, 0.28),
+                  0 1px 2px rgba(255,255,255,0.30) inset;
+      color: #181d29;
+    }
 
-    /* Bottom bar */
+    .remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .channel.edit-mode .remove-btn {
+      display: block;
+    }
+
+    .channel.edit-mode {
+      cursor: grab;
+    }
+
+    .channel.edit-mode:active {
+      cursor: grabbing;
+    }
+
     .bottombar {
       background: #f4f4f4;
       border-top: 2px solid #ccc;
@@ -79,27 +105,51 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      border: 2px solid #b3d3f7;
+    }
+
+    .add-channel-btn, .toggle-edit-btn {
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+      border: 2px solid #b3d3f7;
+      color: black;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 2px solid #b3d3f7;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+      box-shadow: 0 2px 8px rgba(120, 170, 220, 0.18),
+                  0 0.5px 1px rgba(255,255,255,0.25) inset;
+    }
+
+    .add-channel-btn:hover, .toggle-edit-btn:hover {
+      background: #45a049;
+      background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
+
+    }
+
+    .toggle-edit-btn.active {
+      background: #e67e22;
     }
   </style>
 </head>
 <body>
 
-  <div class="menu">
-    <div class="channel">Disc Channel</div>
-    <div class="channel">Mii Channel</div>
-    <div class="channel">Photo Channel</div>
-    <div class="channel">Shop Channel</div>
-    <div class="channel">Forecast Channel</div>
-    <div class="channel">News Channel</div>
-    <div class="channel">Mii Parade</div>
-    <div class="channel">Wii Settings</div>
-    <div class="channel">Internet</div>
-    <div class="channel">Empty</div>
-    <div class="channel">Wii Speak</div>
-    <div class="channel">Transfer Tool</div>
+  <div class="menu" id="menu">
+    <div class="channel">Disc Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">Mii Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">Photo Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">Shop Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">Forecast Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">News Channel <button class="remove-btn">✖</button></div>
+    <div class="channel">Mii Parade <button class="remove-btn">✖</button></div>
+    <div class="channel">Wii Settings <button class="remove-btn">✖</button></div>
+    <div class="channel">Internet <button class="remove-btn">✖</button></div>
+    <div class="channel">Empty <button class="remove-btn">✖</button></div>
+    <div class="channel">Wii Speak <button class="remove-btn">✖</button></div>
+    <div class="channel">Transfer Tool <button class="remove-btn">✖</button></div>
   </div>
 
-  <!-- Bottom Bar -->
   <div class="bottombar">
     <div class="icons">
       <div class="icon">Wii</div>
@@ -107,12 +157,17 @@
     </div>
     <div class="date-time" id="datetime"></div>
     <div class="icons">
+      <button class="add-channel-btn" onclick="addChannel()">+ Add Channel</button>
+      <button class="toggle-edit-btn" id="editToggle" onclick="toggleEditMode()">Toggle Edit</button>
       <div class="icon">✉</div>
     </div>
   </div>
 
   <script>
-    // Update date/time like Wii
+    let editMode = false;
+    let dragged = null;
+
+    // Date/time
     function updateDateTime() {
       const now = new Date();
       const time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -121,7 +176,84 @@
     }
     setInterval(updateDateTime, 1000);
     updateDateTime();
-  </script>
 
+    // Add channel
+    function addChannel() {
+      const name = prompt("Enter a name for your new channel:");
+      if (name && name.trim() !== "") {
+        const menu = document.getElementById("menu");
+        const newChannel = document.createElement("div");
+        newChannel.className = "channel";
+        newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
+        setupChannel(newChannel);
+        menu.appendChild(newChannel);
+      }
+    }
+
+    // Setup channel interactions
+    function setupChannel(channel) {
+      const removeBtn = channel.querySelector(".remove-btn");
+
+
+      // Remove channel (edit mode)
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (editMode) channel.remove();
+      });
+
+      // Dragging
+      channel.addEventListener("dragstart", (e) => {
+        if (!editMode) return e.preventDefault();
+        dragged = channel;
+        setTimeout(() => channel.style.display = "none", 0);
+      });
+
+      channel.addEventListener("dragend", () => {
+        if (dragged) {
+          dragged.style.display = "flex";
+          dragged = null;
+        }
+      });
+
+      channel.addEventListener("dragover", (e) => {
+        if (editMode) e.preventDefault();
+      });
+
+      channel.addEventListener("drop", (e) => {
+        if (editMode && dragged && dragged !== channel) {
+          e.preventDefault();
+          const menu = document.getElementById("menu");
+          const children = Array.from(menu.children);
+          const draggedIndex = children.indexOf(dragged);
+          const targetIndex = children.indexOf(channel);
+
+          if (draggedIndex < targetIndex) {
+            menu.insertBefore(dragged, channel.nextSibling);
+          } else {
+            menu.insertBefore(dragged, channel);
+          }
+        }
+      });
+    }
+
+    // Toggle edit mode
+    function toggleEditMode() {
+      editMode = !editMode;
+      document.getElementById("editToggle").classList.toggle("active", editMode);
+
+      document.querySelectorAll(".channel").forEach(channel => {
+        if (editMode) {
+          channel.classList.add("edit-mode");
+          channel.setAttribute("draggable", true);
+        } else {
+          channel.classList.remove("edit-mode");
+          channel.removeAttribute("draggable");
+        }
+      });
+    }
+
+    // Initialize existing channels
+    document.querySelectorAll(".channel").forEach(setupChannel);
+  </script>
 </body>
 </html>
