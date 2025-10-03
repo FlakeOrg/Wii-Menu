@@ -35,9 +35,9 @@
       border-radius: 22px;
       box-shadow: 0 2px 8px rgba(120, 170, 220, 0.18),
                   0 0.5px 1px rgba(255,255,255,0.25) inset;
-  height: 120px;   /* match grid row height */
-  width: 100%;     /* let the grid cell define the width */
-  box-sizing: border-box;
+      height: 120px;
+      width: 100%;
+      box-sizing: border-box;
       text-shadow: 0 1px 0 #ffffff;
       transition: background 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.18s;
       cursor: pointer;
@@ -56,7 +56,9 @@
     .channel.selected {
       z-index: 2;
       transform: scale(1.14);
-      box-shadow: 0 8px 32px rgba(60,120,220,0.28), 0 2px 8px #b3d3f7, 0 0.5px 1px rgba(255,255,255,0.35) inset;
+      box-shadow: 0 8px 32px rgba(60,120,220,0.28),
+                  0 2px 8px #b3d3f7,
+                  0 0.5px 1px rgba(255,255,255,0.35) inset;
       border-color: #3399ff;
       background: linear-gradient(180deg, #e2effc 0%, #cbe7ff 100%);
       color: #004080;
@@ -205,6 +207,80 @@
       background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
       transform: scale(1.05);
     }
+
+    /* --- Popup Modal --- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+      text-align: center;
+      width: 320px;
+      animation: popIn 0.25s ease;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 15px;
+    }
+
+    .modal-content label {
+      display: block;
+      margin: 10px 0;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .modal-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .modal-buttons button {
+      background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+      border: 2px solid #b3d3f7;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .modal-buttons button:hover {
+      background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
+      transform: scale(1.05);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -231,15 +307,35 @@
     </div>
     <div class="date-time" id="datetime"></div>
     <div class="icons">
-      <button class="add-channel-btn" onclick="addChannel()">+ Add Channel</button>
+      <button class="add-channel-btn" onclick="openAddChannelModal()">+ Add Channel</button>
       <button class="toggle-edit-btn" id="editToggle" onclick="toggleEditMode()">Toggle Edit</button>
       <div class="icon">✉</div>
+    </div>
+  </div>
+
+  <!-- Channel Popup Modal -->
+  <div id="channelModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle">Add New Channel</h2>
+      <label>
+        Channel Name:
+        <input type="text" id="channelNameInput">
+      </label>
+      <label>
+        Channel Link:
+        <input type="url" id="channelLinkInput">
+      </label>
+      <div class="modal-buttons">
+        <button onclick="saveModalChannel()">Save</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
     </div>
   </div>
 
 <script>
   let editMode = false;
   let dragged = null;
+  let editingChannel = null; // track channel being edited
 
   // --- Date/time ---
   function updateDateTime() {
@@ -251,11 +347,11 @@
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
-  // --- Save & Load channels from localStorage ---
+  // --- Save & Load channels ---
   function saveChannels() {
     const menu = document.getElementById("menu");
     const data = Array.from(menu.children).map(ch => ({
-      name: ch.childNodes[0].textContent.trim(), // channel name
+      name: ch.childNodes[0].textContent.trim(),
       link: ch.getAttribute("data-link") || ""
     }));
     localStorage.setItem("channels", JSON.stringify(data));
@@ -266,7 +362,7 @@
     if (!saved) return;
     const channels = JSON.parse(saved);
     const menu = document.getElementById("menu");
-    menu.innerHTML = ""; // clear default channels
+    menu.innerHTML = "";
 
     channels.forEach(ch => {
       const newChannel = document.createElement("div");
@@ -278,30 +374,52 @@
     });
   }
 
-  // --- Add channel ---
-  function addChannel() {
-    const name = prompt("Enter a name for your new channel:");
-    if (!name || name.trim() === "") return;
-
-    const link = prompt("Enter a link (URL) for this channel:");
-    if (!link || link.trim() === "") return;
-
-    const menu = document.getElementById("menu");
-    const newChannel = document.createElement("div");
-    newChannel.className = "channel";
-    newChannel.setAttribute("data-link", link);
-    newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
-    setupChannel(newChannel);
-    menu.appendChild(newChannel);
-
-    saveChannels();
+  // --- Modal Controls ---
+  function openAddChannelModal() {
+    editingChannel = null;
+    document.getElementById("modalTitle").textContent = "Add New Channel";
+    document.getElementById("channelNameInput").value = "";
+    document.getElementById("channelLinkInput").value = "";
+    document.getElementById("channelModal").classList.add("show");
   }
 
-  // --- Setup channel interactions ---
+  function openEditChannelModal(channel) {
+    editingChannel = channel;
+    document.getElementById("modalTitle").textContent = "Edit Channel";
+    document.getElementById("channelNameInput").value = channel.childNodes[0].textContent.trim();
+    document.getElementById("channelLinkInput").value = channel.getAttribute("data-link") || "";
+    document.getElementById("channelModal").classList.add("show");
+  }
+
+  function closeModal() {
+    document.getElementById("channelModal").classList.remove("show");
+  }
+
+  function saveModalChannel() {
+    const name = document.getElementById("channelNameInput").value.trim();
+    const link = document.getElementById("channelLinkInput").value.trim();
+    if (!name || !link) return;
+
+    if (editingChannel) {
+      editingChannel.childNodes[0].textContent = name + " ";
+      editingChannel.setAttribute("data-link", link);
+    } else {
+      const menu = document.getElementById("menu");
+      const newChannel = document.createElement("div");
+      newChannel.className = "channel";
+      newChannel.setAttribute("data-link", link);
+      newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
+      setupChannel(newChannel);
+      menu.appendChild(newChannel);
+    }
+    saveChannels();
+    closeModal();
+  }
+
+  // --- Setup channel ---
   function setupChannel(channel) {
     const removeBtn = channel.querySelector(".remove-btn");
 
-    // Remove channel
     removeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (editMode) {
@@ -310,7 +428,6 @@
       }
     });
 
-    // Dragging
     channel.addEventListener("dragstart", (e) => {
       if (!editMode) return e.preventDefault();
       dragged = channel;
@@ -346,14 +463,12 @@
       }
     });
 
-    // Single click selects
     channel.addEventListener("click", function() {
       if (editMode) return;
       document.querySelectorAll(".channel").forEach(ch => ch.classList.remove("selected"));
       channel.classList.add("selected");
     });
 
-    // Double-click opens overlay
     channel.addEventListener("dblclick", function () {
       if (editMode) return;
 
@@ -370,14 +485,12 @@
         `;
         document.body.appendChild(overlay);
 
-        // Wii Menu button
         document.getElementById("menuBtn").addEventListener("click", () => {
           overlay.classList.remove("show");
           channel.classList.remove("opening", "fade-out");
           setTimeout(() => overlay.remove(), 500);
         });
 
-        // Start button
         document.getElementById("startBtn").addEventListener("click", () => {
           const link = channel.getAttribute("data-link");
           if (link) {
@@ -397,15 +510,10 @@
       }, 600);
     });
 
-    // --- Right-click to edit link in edit mode ---
     channel.addEventListener("contextmenu", (e) => {
-      if (!editMode) return; // only works in edit mode
+      if (!editMode) return;
       e.preventDefault();
-      const newLink = prompt("Enter a new link (URL) for this channel:", channel.getAttribute("data-link") || "");
-      if (newLink && newLink.trim() !== "") {
-        channel.setAttribute("data-link", newLink);
-        saveChannels();
-      }
+      openEditChannelModal(channel);
     });
   }
 
@@ -426,8 +534,8 @@
     });
   }
 
-  // --- Initialize ---
-  loadChannels(); // load from localStorage
+  // --- Init ---
+  loadChannels();
   if (document.querySelectorAll(".channel").length > 0) {
     document.querySelectorAll(".channel").forEach(setupChannel);
   }
