@@ -47,10 +47,14 @@
     }
 
     .channel:hover {
-      background: linear-gradient(180deg, #e2effc 0%, #f8fcff 100%);
-      box-shadow: 0 4px 16px rgba(120, 170, 220, 0.28),
-                  0 1px 2px rgba(255,255,255,0.30) inset;
-      color: #181d29;
+      z-index: 2;
+      transform: scale(1.14);
+      box-shadow: 0 8px 32px rgba(60,120,220,0.28),
+                  0 2px 8px #b3d3f7,
+                  0 0.5px 1px rgba(255,255,255,0.35) inset;
+      border-color: #3399ff;
+      background: linear-gradient(180deg, #e2effc 0%, #cbe7ff 100%);
+      color: #004080;
     }
 
     .channel.selected {
@@ -96,19 +100,24 @@
       cursor: grabbing;
     }
 
-    .bottombar {
-      background: #f4f4f4;
-      border-top: 2px solid #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 20px;
-      font-size: 18px;
-    }
+.bottombar {
+  background: #f4f4f4;
+  border-top: 2px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 18px;
+  position: relative; /* Needed for absolute centering */
+}
 
-    .date-time {
-      font-weight: bold;
-    }
+.date-time {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+}
+
 
     .icons {
       display: flex;
@@ -281,9 +290,25 @@
       from { transform: scale(0.8); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
+
+    /* --- Channel background overlay --- */
+    #channelBackground {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(to bottom, #e5e5e5, #dcdcdc);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      z-index: 800;
+    }
+    #channelBackground.show {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
+
 
   <div class="menu" id="menu">
     <div class="channel">Disc Channel <button class="remove-btn">✖</button></div>
@@ -299,6 +324,8 @@
     <div class="channel">Wii Speak <button class="remove-btn">✖</button></div>
     <div class="channel">Transfer Tool <button class="remove-btn">✖</button></div>
   </div>
+
+
 
   <div class="bottombar">
     <div class="icons">
@@ -325,6 +352,14 @@
         Channel Link:
         <input type="url" id="channelLinkInput">
       </label>
+      <label>
+        Background URL:
+        <input type="url" id="channelBgInput">
+      </label>
+      <label>
+        Or Upload Background:
+        <input type="file" id="channelBgFile" accept="image/*">
+      </label>
       <div class="modal-buttons">
         <button onclick="saveModalChannel()">Save</button>
         <button onclick="closeModal()">Cancel</button>
@@ -332,10 +367,27 @@
     </div>
   </div>
 
+  <!-- Channel background overlay -->
+  <div id="channelBackground"></div>
+
+<!-- Background Music -->
+<audio id="bg-music" src="wiimenu.mp3" autoplay loop></audio>
+
 <script>
-  let editMode = false;
-  let dragged = null;
-  let editingChannel = null; // track channel being edited
+
+const music = document.getElementById('bg-music');
+music.volume = 0.5; // optional volume level
+
+
+// Some browsers may block autoplay — ensure playback starts with interaction
+document.addEventListener('click', () => {
+if (music.paused) music.play();
+});
+
+
+document.addEventListener('keydown', () => {
+if (music.paused) music.play();
+});
 
   // --- Date/time ---
   function updateDateTime() {
@@ -352,7 +404,8 @@
     const menu = document.getElementById("menu");
     const data = Array.from(menu.children).map(ch => ({
       name: ch.childNodes[0].textContent.trim(),
-      link: ch.getAttribute("data-link") || ""
+      link: ch.getAttribute("data-link") || "",
+      bg: ch.getAttribute("data-bg") || ""
     }));
     localStorage.setItem("channels", JSON.stringify(data));
   }
@@ -368,6 +421,7 @@
       const newChannel = document.createElement("div");
       newChannel.className = "channel";
       newChannel.setAttribute("data-link", ch.link);
+      newChannel.setAttribute("data-bg", ch.bg || "");
       newChannel.innerHTML = `${ch.name} <button class="remove-btn">✖</button>`;
       setupChannel(newChannel);
       menu.appendChild(newChannel);
@@ -380,6 +434,8 @@
     document.getElementById("modalTitle").textContent = "Add New Channel";
     document.getElementById("channelNameInput").value = "";
     document.getElementById("channelLinkInput").value = "";
+    document.getElementById("channelBgInput").value = "";
+    document.getElementById("channelBgFile").value = "";
     document.getElementById("channelModal").classList.add("show");
   }
 
@@ -388,6 +444,8 @@
     document.getElementById("modalTitle").textContent = "Edit Channel";
     document.getElementById("channelNameInput").value = channel.childNodes[0].textContent.trim();
     document.getElementById("channelLinkInput").value = channel.getAttribute("data-link") || "";
+    document.getElementById("channelBgInput").value = channel.getAttribute("data-bg") || "";
+    document.getElementById("channelBgFile").value = "";
     document.getElementById("channelModal").classList.add("show");
   }
 
@@ -398,22 +456,38 @@
   function saveModalChannel() {
     const name = document.getElementById("channelNameInput").value.trim();
     const link = document.getElementById("channelLinkInput").value.trim();
-    if (!name || !link) return;
+    const bgUrl = document.getElementById("channelBgInput").value.trim();
+    const fileInput = document.getElementById("channelBgFile");
+    if (!name) return;
 
-    if (editingChannel) {
-      editingChannel.childNodes[0].textContent = name + " ";
-      editingChannel.setAttribute("data-link", link);
+    const saveChannel = (finalBg) => {
+      if (editingChannel) {
+        editingChannel.childNodes[0].textContent = name + " ";
+        editingChannel.setAttribute("data-link", link);
+        editingChannel.setAttribute("data-bg", finalBg);
+      } else {
+        const menu = document.getElementById("menu");
+        const newChannel = document.createElement("div");
+        newChannel.className = "channel";
+        newChannel.setAttribute("data-link", link);
+        newChannel.setAttribute("data-bg", finalBg);
+        newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
+        setupChannel(newChannel);
+        menu.appendChild(newChannel);
+      }
+      saveChannels();
+      closeModal();
+    };
+
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        saveChannel(e.target.result); // Base64 string
+      };
+      reader.readAsDataURL(fileInput.files[0]);
     } else {
-      const menu = document.getElementById("menu");
-      const newChannel = document.createElement("div");
-      newChannel.className = "channel";
-      newChannel.setAttribute("data-link", link);
-      newChannel.innerHTML = `${name} <button class="remove-btn">✖</button>`;
-      setupChannel(newChannel);
-      menu.appendChild(newChannel);
+      saveChannel(bgUrl);
     }
-    saveChannels();
-    closeModal();
   }
 
   // --- Setup channel ---
@@ -463,17 +537,20 @@
       }
     });
 
-    channel.addEventListener("click", function() {
-      if (editMode) return;
-      document.querySelectorAll(".channel").forEach(ch => ch.classList.remove("selected"));
-      channel.classList.add("selected");
-    });
-
-    channel.addEventListener("dblclick", function () {
+    channel.addEventListener("click", function () {
       if (editMode) return;
 
       document.querySelectorAll(".channel").forEach(ch => ch.classList.remove("selected"));
       channel.classList.add("opening");
+
+      const bg = document.getElementById("channelBackground");
+      const bgUrl = channel.getAttribute("data-bg");
+      if (bgUrl) {
+        bg.style.background = `url('${bgUrl}') center/cover no-repeat`;
+      } else {
+        bg.style.background = "linear-gradient(to bottom, #e5e5e5, #dcdcdc)";
+      }
+      bg.classList.add("show");
 
       let overlay = document.querySelector(".channel-overlay");
       if (!overlay) {
@@ -488,6 +565,7 @@
         document.getElementById("menuBtn").addEventListener("click", () => {
           overlay.classList.remove("show");
           channel.classList.remove("opening", "fade-out");
+          document.getElementById("channelBackground").classList.remove("show");
           setTimeout(() => overlay.remove(), 500);
         });
 
@@ -500,6 +578,7 @@
           }
           overlay.classList.remove("show");
           channel.classList.remove("opening", "fade-out");
+          document.getElementById("channelBackground").classList.remove("show");
           setTimeout(() => overlay.remove(), 500);
         });
       }
