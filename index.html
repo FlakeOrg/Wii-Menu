@@ -305,6 +305,38 @@
     #channelBackground.show {
       opacity: 1;
     }
+
+/* Image mode styling */
+.image-mode .channel {
+  font-size: 0; /* Hide text */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.image-mode .channel::after {
+  content: "";
+  display: block;
+  padding-top: 60%; /* keep consistent height ratio */
+}
+
+.image-mode .remove-btn {
+  font-size: 14px; /* keep remove button visible */
+}
+
+.toggle-image-btn {
+  background: linear-gradient(180deg, #f8fcff 0%, #e2effc 100%);
+  border: 2px solid #b3d3f7;
+  color: black;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(120, 170, 220, 0.18),
+              0 0.5px 1px rgba(255,255,255,0.25) inset;
+}
+
   </style>
 </head>
 <body>
@@ -333,6 +365,8 @@
     <div class="icons">
       <button class="add-channel-btn" onclick="openAddChannelModal()">+ Add Channel</button>
       <button class="toggle-edit-btn" id="editToggle" onclick="toggleEditMode()">Toggle Edit</button>
+<button class="toggle-image-btn" id="imageToggle" onclick="toggleImageMode()">Toggle Image Mode</button>
+
       <div class="icon">✉</div>
     </div>
   </div>
@@ -601,6 +635,39 @@
   if (document.querySelectorAll(".channel").length > 0) {
     document.querySelectorAll(".channel").forEach(setupChannel);
   }
+
+let imageMode = false;
+
+function toggleImageMode() {
+  imageMode = !imageMode;
+  document.body.classList.toggle("image-mode", imageMode);
+
+  const btn = document.getElementById("imageToggle");
+  btn.classList.toggle("active", imageMode);
+
+  // Update channel visuals
+  document.querySelectorAll(".channel").forEach(ch => {
+    const bg = ch.getAttribute("data-bg");
+    if (imageMode && bg) {
+      ch.style.backgroundImage = `url('${bg}')`;
+    } else {
+      ch.style.backgroundImage = "";
+    }
+  });
+
+  localStorage.setItem("imageMode", imageMode);
+}
+
+// Load mode on startup
+window.addEventListener("load", () => {
+  const saved = localStorage.getItem("imageMode") === "true";
+  if (saved) {
+    imageMode = true;
+    toggleImageMode();
+  }
+});
+
+
 </script>
 
 </body>
